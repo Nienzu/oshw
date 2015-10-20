@@ -12,6 +12,7 @@ void edit_file(int socket_fd, char filename[F_N_SIZE]);
 int check_file(int socket, char filename[F_N_SIZE]);
 int send_adv(int socket_fd, char buffer[B_SIZE]);
 void create_file(int socekt_fd, char filename[F_N_SIZE]);
+void list_file(int socket_fd);
 
 
 int main(){
@@ -63,7 +64,9 @@ int main(){
 				}
 				break;
 			case 'l':
-				printf("Below is the file in server:\n");
+				scanf("%c", &command);
+				printf("Below is the file in server:\n\n");
+				list_file(socket_fd);
 				break;
 			case 'q':
 				break;
@@ -72,10 +75,6 @@ int main(){
 		if(command == 'q')
 			break;
 	}
-	/*Receive*/
-	//bzero(buffer, 128);
-	//recv(socket_fd, buffer, sizeof(buffer), 0);
-	//printf("%s %d\n", buffer, d);
 	close(socket_fd);
 	return 0;
 }
@@ -87,6 +86,18 @@ void edit_file(int socket_fd, char filename[F_N_SIZE]){
 	
 }
 
+void list_file(int socket_fd){
+	char buffer[B_SIZE];
+	bzero(&buffer, B_SIZE);
+	
+	while(1){
+		recv(socket_fd, buffer, sizeof(buffer), 0);
+		printf("%s", buffer);
+		if(buffer[0]=='\0')
+			break;
+	}
+
+}
 
 void create_file(int socket_fd , char filename[F_N_SIZE]){
 	send_adv(socket_fd, filename);	

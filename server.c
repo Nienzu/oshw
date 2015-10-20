@@ -9,6 +9,7 @@
 #define F_N_SIZE 128
 
 
+void list_file(int client);
 
 int main(){
 	int socket_fd;
@@ -57,6 +58,10 @@ int main(){
 				remove(buffer);
 			}
 			break;
+		case 'l':
+			list_file(client);
+
+			break;
 		case 'q':
 			break;		
 			//if(a==1)
@@ -70,4 +75,20 @@ int main(){
 	}
 	close(socket_fd);	
 	return 0;
+}
+
+void list_file(int client){
+	char cccc[100];
+	bzero(&cccc, 100);
+	cccc[0]='l';
+	cccc[1]='s';
+	FILE *fp = popen(cccc, "r");
+	char buffer[B_SIZE];
+	bzero(&buffer, B_SIZE);
+	while((fgets(buffer, B_SIZE, fp) != NULL)){	
+		send(client, buffer, sizeof(buffer), 0);
+		bzero(&buffer, B_SIZE);
+	}
+	send(client, buffer, sizeof(buffer), 0);	
+
 }
