@@ -34,8 +34,8 @@ static int batoto_show(struct seq_file *m, void *v)
 		}
 		_next_task_ = next_task(_prev_task_);
 		_prev_task_ = task_list;
-		seq_printf(m, "\n %s 's parent : %s (%d)\n", pid, _prev_task_->comm, _prev_task_->pid);
-		seq_printf(m, "\n %s 's child : %s (%d)\n", pid, _next_task_->comm, _next_task_->pid);
+		seq_printf(m, "\n %s's parent : %s (%d)\n", pid, _prev_task_->comm, _prev_task_->pid);
+		seq_printf(m, "\n %s's child : %s (%d)\n", pid, _next_task_->comm, _next_task_->pid);
 	}
     return 0;
 }

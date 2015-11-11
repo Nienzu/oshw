@@ -1,0 +1,3 @@
+sudo insmod oshw2.ko command=[] pid=[]
+./user
+sudo rmmod oshw2
