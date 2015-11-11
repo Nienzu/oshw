@@ -3,6 +3,7 @@
 #include <linux/proc_fs.h>
 #include <linux/sched.h>
 #include <linux/moduleparam.h>
+#include <string.h>
 
 
 static char *mystring = "\0";
@@ -20,10 +21,10 @@ int read_proc(char *buf,char **start,off_t offset,int count,int *eof,void *data 
 }
 
 void create_new_proc_entry()
-{	if(mystring == "showall"){
+{	if(strcmp(mystring, "showall") == 0){
 		create_proc_read_entry("ps_list",0,NULL,read_proc,NULL);
 	}
-	else if(mystring == "parentchild"){
+	else if(strcmp(mystring, "parentchild") == 0){
 
 	}
 	else if(mystring == "\0"){
@@ -33,18 +34,20 @@ void create_new_proc_entry()
 
 
 int functn_init (void) {
-	int ret;
-	if(mystring == "showall"){
+	if(strcmp(mystring, "showall") == 0){
 		create_new_proc_entry();
 	}
 	else{
-		
+
 	}
 	return 0;
 }
 
 void functn_cleanup(void) {
-	remove_proc_entry("ps_list",NULL);
+	if(strcmp(mystring, "showall") == 0){
+		remove_proc_entry("ps_list",NULL);
+	}
+
 }
 
 module_init(functn_init);
