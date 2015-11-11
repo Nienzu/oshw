@@ -6,17 +6,18 @@
 #include <linux/seq_file.h>
 #include <linux/string.h>
 #include <linux/sched.h>
-#include <linux/stdio.h>
+#include <linux/kernel.h>
 
 static char *command = "\0";
 static char *pid = "\0";
-module_param(mystring, charp, 0000);
-MODULE_PARM_DESC(mystring, "command");
+module_param(command, charp, 0000);
+module_param(pid, charp, 0000);
+MODULE_PARM_DESC(command, "command");
 MODULE_PARM_DESC(pid, "pid");
 
 static int batoto_show(struct seq_file *m, void *v)
 {
-	if(strcmp(comment, "showall") == 0){
+	if(strcmp(command, "showall") == 0){
 		struct task_struct *task_list;
 		for_each_process(task_list) {
 			seq_printf(m, "\n %s %d \n",task_list->comm,task_list->pid);
@@ -26,14 +27,15 @@ static int batoto_show(struct seq_file *m, void *v)
 		char a[10];
 		struct task_struct *task_list, *_prev_task_, *_next_task_;
 		for_each_process(task_list) {
-			sprintf(a, "%d", task_list->pid);
+			_prev_task_ = next_task(task_list);
+			sprintf(a, "%d", _prev_task_->pid);
 			if(strcmp(a, pid) == 0) 
 				break;
 		}
-		_prev_task_ = task_list->prev_task;
-		_next_task_ = task_list->next_task;
-		seq_printf("%s's parent : %s (%d)", pid, _prev_task_->prev_task, _prev_task_->pid);
-		seq_printf("%s's child : %s (%d)", pid, _next_task_->comm, _next_task_->pid);
+		_next_task_ = next_task(_prev_task_);
+		_prev_task_ = task_list;
+		seq_printf(m, "\n %s 's parent : %s (%d)\n", pid, _prev_task_->comm, _prev_task_->pid);
+		seq_printf(m, "\n %s 's child : %s (%d)\n", pid, _next_task_->comm, _next_task_->pid);
 	}
     return 0;
 }
