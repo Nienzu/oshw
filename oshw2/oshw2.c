@@ -58,7 +58,7 @@ static int batoto_show(struct seq_file *m, void *v)
 		}
 	}
 	else {
-		seq_printf(m, "No this command.");
+		seq_printf(m, "No this command support.\n");
 	}
     return 0;
 }
@@ -86,7 +86,7 @@ static int batoto_init(void)
     	// Create a "batoto" file , and its struct  file_operation setting is file_operation
     }
     else {
-    	printk("No comment reqiured\n");
+    	printk("No command.\n");
     	// print message that user can know whether the module load or not 
     }
     return 0;
