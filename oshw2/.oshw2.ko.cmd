@@ -1,1 +1,0 @@
-cmd_/home/whoami/Desktop/work/oshw/oshw2/oshw2.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/whoami/Desktop/work/oshw/oshw2/oshw2.ko /home/whoami/Desktop/work/oshw/oshw2/oshw2.o /home/whoami/Desktop/work/oshw/oshw2/oshw2.mod.o
