@@ -14,7 +14,6 @@ Some referecne:
 	passing argument to kernel module : http://www.tldp.org/LDP/lkmpg/2.6/html/x323.html
 */
 
-commnad
 static char *command = "\0";
 static char *pid = "\0";
 //parameter declaration
@@ -32,7 +31,7 @@ static int batoto_show(struct seq_file *m, void *v)
 		//all about task_struct is include from linux/sched.h
 		struct task_struct *task_list;
 		for_each_process(task_list) {
-			seq_printf(m, "\n %s %d \n",task_list->comm,task_list->pid);
+			seq_printf(m, "%s %d \n",task_list->comm,task_list->pid);
 			//print proces name and pid 
 		}
 	}
