@@ -1,54 +1,48 @@
 #include <linux/module.h>
+#include <linux/init.h>
 #include <linux/kernel.h>
+#include <linux/fs.h>
 #include <linux/proc_fs.h>
+#include <linux/seq_file.h>
+#include <linux/string.h>
 #include <linux/sched.h>
-#include <linux/moduleparam.h>
-#include <string.h>
 
-
-static char *mystring = "\0";
-module_param(mystring, charp, 0000);
-MODULE_PARM_DESC(mystring, "A character string");
-
-int read_proc(char *buf,char **start,off_t offset,int count,int *eof,void *data )
+static int batoto_show(struct seq_file *m, void *v)
 {
-	int len=0;
+
 	struct task_struct *task_list;
 	for_each_process(task_list) {
-		len  += sprintf(buf+len, "\n %s %d \n",task_list->comm,task_list->pid);
+		seq_printf(m, "\n %s %d \n",task_list->comm,task_list->pid);
 	}
-	return len;
+    return 0;
 }
 
-void create_new_proc_entry()
-{	if(strcmp(mystring, "showall") == 0){
-		create_proc_read_entry("ps_list",0,NULL,read_proc,NULL);
-	}
-	else if(strcmp(mystring, "parentchild") == 0){
-
-	}
-	else if(mystring == "\0"){
-
-	}
+static int batoto_open(struct inode *inode, struct file *file)
+{
+    return single_open(file, batoto_show, NULL);
 }
 
+static const struct file_operations batoto_fops = {
+    .owner      = THIS_MODULE,
+    .open       = batoto_open,
+    .read       = seq_read,
+    .llseek     = seq_lseek,
+    .release    = single_release,
+};
 
-int functn_init (void) {
-	if(strcmp(mystring, "showall") == 0){
-		create_new_proc_entry();
-	}
-	else{
-
-	}
-	return 0;
+static int batoto_init(void)
+{
+    printk(KERN_INFO "Loading hz module, BATOTO = %d.\n", BATOTO);
+    proc_create("batoto", 0, NULL, &batoto_fops);
+    return 0;
 }
 
-void functn_cleanup(void) {
-	if(strcmp(mystring, "showall") == 0){
-		remove_proc_entry("ps_list",NULL);
-	}
-
+static void batoto_exit(void)
+{
+    remove_proc_entry("batoto", NULL);
+    printk(KERN_INFO "Unloading batoto module.\n");
 }
 
-module_init(functn_init);
-module_exit(functn_cleanup);
+module_init(batoto_init);
+module_exit(batoto_exit);
+
