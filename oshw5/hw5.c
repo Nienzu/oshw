@@ -64,6 +64,7 @@ int myfs_file_write(int fd, char *buf, int count){
 	bzero(header, 34);
 	bzero(number, 4);
 	int i, space = 0, write;
+
 	for(i = 0;i < size;++i){
 		fread(block, sizeof(char), 1024, File_sys);
 		if(block[0] == '\0')
@@ -79,7 +80,7 @@ int myfs_file_write(int fd, char *buf, int count){
 	scanf("%c",&tmp);
 	space = count / 990;
 	write = count % 990;
-	if(write == 0 && space > 0){
+	if(space > 0){
 		write = 990;
 		--space; 
 	}
@@ -93,8 +94,10 @@ int myfs_file_write(int fd, char *buf, int count){
 			strncpy(header,block,30);
 			fwrite(block,sizeof(char),34,duplicate);
 			fwrite(buf,sizeof(char),write,duplicate);
-			bzero(block,1024);
-			fwrite(block,sizeof(char),990-write,duplicate);
+			if(space < 0){
+				bzero(block,1024);
+				fwrite(block,sizeof(char),990-write,duplicate);
+			}
 			--space;
 			++count;
 		}
@@ -102,23 +105,24 @@ int myfs_file_write(int fd, char *buf, int count){
 	fclose(File_sys);
 	fclose(duplicate);
 	rename("fs_tmp",fs_name);
+
 	while(space > -1){
 		File_sys = fopen(fs_name,"rb");
 		duplicate = fopen("fs_tmp","wb");
-		bzero(block,1024);
-		sprintf(number,"%d",count);
+		bzero(block, 1024);
+		sprintf(number, "%d", count);
 		for(i = 0;i < size;++i){
-			fread(block,sizeof(char),1024,File_sys);
+			fread(block, sizeof(char), 1024, File_sys);
 			if(block[0] != '\0')
-				fwrite(block,sizeof(char),1024,duplicate);
+				fwrite(block, sizeof(char), 1024, duplicate);
 			else{
+				bzero(block, 1024);
+				strcpy(block, header);
+				strcat(block, number);
+				fwrite(block, sizeof(char), 34, duplicate);
+				fwrite(buf+990*count, sizeof(char), write, duplicate);
 				bzero(block,1024);
-				strcpy(block,header);
-				strcat(block,number);
-				fwrite(block,sizeof(char),34,duplicate);
-				fwrite(buf+990*count,sizeof(char),write,duplicate);
-				bzero(block,1024);
-				fwrite(block,sizeof(char),990-write,duplicate);
+				fwrite(block, sizeof(char), 990-write, duplicate);
 				++count;
 				--space;
 			}
