@@ -1,0 +1,316 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int size;
+char fs_name[100];
+int myfs_file_open(const char *filename){
+	FILE *fs;
+	fs = fopen(fs_name,"rb");
+	char block[1024];
+	bzero(block,1024);
+	fread(block,sizeof(char),1024,fs);
+	char *check;
+	check = strstr(block,filename);
+	if(check == NULL){
+		printf("file doesn't exist\n");
+		return 0;
+	}
+	check = strtok(block," ");
+	char name [30];
+	bzero(name,30);
+	int value = 0,ret = 0;
+	while(check != NULL){
+		if(strcmp(check,filename) == 0)
+			ret = 1;
+		else if(ret == 1){
+			value = atoi(check);
+			return value;
+		}
+		check = strtok(NULL," ");
+	}
+}
+
+int myfs_file_close(int fd){
+	return 0;	
+}
+
+int myfs_file_create(const char *filename){
+	FILE *fs,*ftmp;
+	fs = fopen(fs_name,"rb");
+	ftmp = fopen("fs_tmp","wb");
+	char block[1024],tmp[1024];
+	bzero(block,1024);
+	bzero(tmp,1024);
+	fread(block,sizeof(char),1024,fs);
+	char *check;
+	check = strstr(block,filename);
+	if(check != NULL){
+		printf("File already exist\n");
+		return 0;
+	}
+	int i,location = 0;
+	for(;block[0] != '\0';++location){
+		fread(block,sizeof(char),1024,fs);
+		if(location == size){
+			printf("system is full!\n");
+			return 0;
+		}
+	}
+	rewind(fs);
+	fread(block,sizeof(char),1024,fs);
+	strcat(block,filename);
+	sprintf(tmp," %d",location);
+	strcat(block,tmp);
+	strcat(block," ");
+	for(i = 0;i < size;++i){
+		if(i == location){
+			fwrite(filename,sizeof(char),30,ftmp);
+			bzero(tmp,1024);
+			fwrite(tmp,sizeof(char),994,ftmp);
+		}
+		else
+			fwrite(block,sizeof(char),1024,ftmp);
+		if(i != size -1)
+			fread(block,sizeof(char),1024,fs);
+	}
+	fclose(fs);
+	fclose(ftmp);
+	rename("fs_tmp",fs_name);
+}
+
+int myfs_file_delete(const char *filename){
+	FILE *fs,*ftmp;
+	fs = fopen(fs_name,"rb");
+	ftmp = fopen("fs_tmp","wb");
+	char block[1024],tmp[1024],name[30];
+	bzero(block,1024);
+	bzero(tmp,1024);
+	bzero(name,30);
+	fread(block,sizeof(char),1024,fs);
+	char *check;
+	check = strstr(block,filename);
+	if(check == NULL){
+		printf("File doesn't exist\n");
+		return 0;
+	}
+	int i;
+	sprintf(name,"%d ",size);
+	strcpy(tmp,name);
+	for(i = 1;i < size;++i){
+		fread(block,sizeof(char),1024,fs);
+		strncpy(name,block,30);
+		if(strcmp(name,filename) != 0 && name[0] != '\0'){
+			strcat(tmp,name);
+			sprintf(name," %d",i);
+			strcat(tmp,name);
+			strcat(tmp," ");
+			bzero(name,30);
+		}
+	}
+	bzero(name,30);
+	fseek(fs,1024,SEEK_SET);
+	for(i = 0;i < size;++i){
+		if(strcmp(name,filename) == 0)
+			bzero(tmp,1024);
+		fwrite(tmp,sizeof(char),1024,ftmp);
+		if(i != size - 1){
+			fread(tmp,sizeof(char),1024,fs);
+			bzero(name,31);
+			strncpy(name,tmp,30);	
+		}
+	}
+	fclose(fs);
+	fclose(ftmp);
+	rename("fs_tmp",fs_name);
+}
+
+int myfs_file_read(int fd,char *buf,int count){
+	int i,max = 0,read = 0;
+	FILE *fs;
+	fs = fopen(fs_name,"rb");
+	char block[1024],header[30],number[4];
+	bzero(block,1024);
+	bzero(header,30);
+	bzero(number,4);
+	buf = calloc(count,sizeof(char));
+	max = count / 990;
+	read = count % 990;
+	if(read == 0 && max > 0){
+		read = 990;
+		--count;
+	}
+	count = 0;
+	fseek(fs,fd * 1024,SEEK_SET);
+	fread(block,sizeof(char),1024,fs);
+	strncpy(header,block,30);
+	if(max != 0)
+		strncpy(buf,block + 34,990);
+	else
+		strncpy(buf,block + 34,read);
+	rewind(fs);
+	while(count != max){
+		++count;
+		for(i = 0;i < size;++i){
+			fread(block,sizeof(char),1024,fs);
+			strncpy(number,block + 30,4);
+			if(strncmp(header,block,30) == 0 && count == atoi(number)) 
+				if(count == max)
+					strncat(buf,block + 34,read);
+				else
+					strncat(buf,block + 34,990);
+		}
+		rewind(fs);
+	}
+	fclose(fs);
+	printf("******Content******\n");
+	printf("%s\n",buf);
+	printf("********END********\n");
+	free(buf);
+}
+
+int myfs_file_write(int fd,char *buf,int count){
+	FILE *fs,*ftmp;
+	fs = fopen(fs_name,"rb");
+	ftmp = fopen("fs_tmp","wb");
+	char block[1024],header[30],number[4],tmp;
+	bzero(block,1024);
+	bzero(header,34);
+	bzero(number,4);
+	int i,space = 0,write;
+	for(i = 0;i < size;++i){
+		fread(block,sizeof(char),1024,fs);
+		if(block[0] == '\0')
+			++space;
+	}
+	if(count > (space * 990)){
+		printf("File system is full\n");
+		return 0;
+	}
+	buf = calloc(count,sizeof(char));
+	printf("Enter the content:");
+	scanf("%[^\n]",buf);
+	scanf("%c",&tmp);
+	space = count / 990;
+	write = count % 990;
+	if(write == 0 && space > 0){
+		write = 990;
+		--space; 
+	}
+	count = 0;
+	rewind(fs);
+	for(i = 0;i < size;++i){
+		fread(block,sizeof(char),1024,fs);
+		if(i != fd)
+			fwrite(block,sizeof(char),1024,ftmp);
+		else{
+			strncpy(header,block,30);
+			fwrite(block,sizeof(char),34,ftmp);
+			fwrite(buf,sizeof(char),write,ftmp);
+			bzero(block,1024);
+			fwrite(block,sizeof(char),990-write,ftmp);
+			--space;
+			++count;
+		}
+	}
+	fclose(fs);
+	fclose(ftmp);
+	rename("fs_tmp",fs_name);
+	while(space > -1){
+		fs = fopen(fs_name,"rb");
+		ftmp = fopen("fs_tmp","wb");
+		bzero(block,1024);
+		sprintf(number,"%d",count);
+		for(i = 0;i < size;++i){
+			fread(block,sizeof(char),1024,fs);
+			if(block[0] != '\0')
+				fwrite(block,sizeof(char),1024,ftmp);
+			else{
+				bzero(block,1024);
+				strcpy(block,header);
+				strcat(block,number);
+				fwrite(block,sizeof(char),34,ftmp);
+				fwrite(buf+990*count,sizeof(char),write,ftmp);
+				bzero(block,1024);
+				fwrite(block,sizeof(char),990-write,ftmp);
+				++count;
+				--space;
+			}
+		}
+		fclose(fs);
+		fclose(ftmp);
+		rename("fs_tmp",fs_name);
+	}
+	free(buf);
+}	
+
+int main(int argc,char **argv){
+	FILE *fs;
+	char ch,n,block[1024],tmp[1024],name[30];
+	char *buf;
+	int fd = 0,check = 1,count;
+	bzero(block,1024);
+	bzero(tmp,1024);
+	bzero(name,30);
+	bzero(fs_name,100);
+	strcpy(fs_name,argv[1]);
+	fs = fopen(argv[1],"rb");
+	fread(block,sizeof(char),1024,fs);
+	printf("%s\n",block);
+	sscanf(block,"%d%s",&size,tmp);
+	printf("%d\n",size);
+	rewind(fs);
+	int i;
+	fclose(fs);
+	while(check){
+		if(fd == 0){
+			printf("(O)pen the file\n");
+			printf("(M)ake the file\n");
+			printf("(D)elete the file\n");
+			printf("(Q)uit\n");
+		}
+		else{
+			printf("(C)lose the file\n");
+			printf("(R)ead the file\n");
+			printf("(W)rite the file\n");
+			printf("(Q)uit\n");
+		}
+		scanf("%c%c",&ch,&n);
+		if(ch == 'O' && fd == 0){
+			printf("Enter the file name:");
+			scanf("%s%c",name,&ch);
+			fd = myfs_file_open(name);
+			bzero(name,30);
+		}
+		else if(ch == 'C' && fd != 0){
+			fd = myfs_file_close(fd);
+		}
+		else if(ch == 'M' && fd == 0){
+			printf("Enter the file name:");
+			scanf("%s%c",name,&ch);
+			myfs_file_create(name);
+			bzero(name,30);
+		}
+		else if(ch == 'D' && fd == 0){
+			printf("Enter the file name:");
+			scanf("%s%c",name,&ch);
+			myfs_file_delete(name);
+			bzero(name,30);
+		}
+		else if(ch == 'R' && fd != 0){
+			printf("Enter the size you want to read:");
+			scanf("%d%c",&count,&ch);
+			myfs_file_read(fd,buf,count);
+		}
+		else if(ch == 'W' && fd != 0){
+			printf("Enter the size you want to write:");
+			scanf("%d%c",&count,&ch);
+			myfs_file_write(fd,buf,count);
+		}
+		else if(ch == 'Q')
+			check = 0;
+		else
+			printf("Some wrong input\n");
+		printf("********************\n");
+	}
+}
