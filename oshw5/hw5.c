@@ -97,34 +97,35 @@ int myfs_file_write(int fd, char *buf, int count){
 			if(space < 0){
 				bzero(block,1024);
 				fwrite(block,sizeof(char),990-write,duplicate);
-			}
 			--space;
 			++count;
+			}
 		}
 	}
 	fclose(File_sys);
 	fclose(duplicate);
 	rename("fs_tmp",fs_name);
 
+	int variable ;
 	while(space > -1){
 		File_sys = fopen(fs_name,"rb");
 		duplicate = fopen("fs_tmp","wb");
 		bzero(block, 1024);
 		sprintf(number, "%d", count);
+		variable = 1;
 		for(i = 0;i < size;++i){
 			fread(block, sizeof(char), 1024, File_sys);
 			if(block[0] != '\0')
 				fwrite(block, sizeof(char), 1024, duplicate);
-			else{
+			else if (variable == 1){
 				bzero(block, 1024);
 				strcpy(block, header);
 				strcat(block, number);
 				fwrite(block, sizeof(char), 34, duplicate);
 				fwrite(buf+990*count, sizeof(char), write, duplicate);
-				bzero(block,1024);
-				fwrite(block, sizeof(char), 990-write, duplicate);
 				++count;
 				--space;
+				variable = -1;
 			}
 		}
 		fclose(File_sys);
