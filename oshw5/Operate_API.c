@@ -3,137 +3,14 @@
 #include <string.h>
 
 int size;
-char fs_name[100];
+char FileSys_Name[100];
 
 int myfs_file_open(const char *filename);
 int myfs_file_close(int fd);
 int myfs_file_create(const char *filename);
 int myfs_file_delete(const char *filename);
-
-int myfs_file_read(int fd, char *buf, int count){
-	int i, max = 0, read = 0;
-	FILE *File_sys;
-	File_sys = fopen(fs_name,"rb");
-	char block[1024], header[30], number[4];
-	bzero(block,1024);
-	bzero(header,30);
-	bzero(number,4);
-	buf = calloc(count,sizeof(char));
-	max = count / 990;
-	read = count % 990;
-	if(read == 0 && max > 0){
-		read = 990;
-		--count;
-	}
-	count = 0;
-	fseek(File_sys,fd * 1024,SEEK_SET);
-	fread(block,sizeof(char),1024,File_sys);
-	strncpy(header,block,30);
-	if(max != 0)
-		strncpy(buf,block + 34,990);
-	else
-		strncpy(buf,block + 34,read);
-	rewind(File_sys);
-	while(count != max){
-		++count;
-		for(i = 0;i < size;++i){
-			fread(block,sizeof(char),1024,File_sys);
-			strncpy(number,block + 30,4);
-			if(strncmp(header,block,30) == 0 && count == atoi(number)) 
-				if(count == max)
-					strncat(buf,block + 34,read);
-				else
-					strncat(buf,block + 34,990);
-		}
-		rewind(File_sys);
-	}
-	fclose(File_sys);
-	printf("******Content******\n");
-	printf("%s\n",buf);
-	printf("********END********\n");
-	free(buf);
-}
-
-int myfs_file_write(int fd, char *buf, int count){
-	FILE *File_sys;
-	FILE *duplicate;
-	File_sys = fopen(fs_name, "rb");
-	duplicate = fopen("fs_tmp", "wb");
-	char block[1024], header[30], number[4], tmp;
-	bzero(block, 1024);
-	bzero(header, 34);
-	bzero(number, 4);
-	int i, space = 0, write;
-
-	for(i = 0;i < size;++i){
-		fread(block, sizeof(char), 1024, File_sys);
-		if(block[0] == '\0')
-			space++;
-	}
-	if(count > (space * 990)){
-		printf("File system is full\n");
-		return 0;
-	}
-	buf = calloc(count,sizeof(char));
-	printf("Enter the content:");
-	scanf("%[^\n]",buf);
-	scanf("%c",&tmp);
-	space = count / 990;
-	write = count % 990;
-	if(space > 0){
-		write = 990;
-		--space; 
-	}
-	count = 0;
-	rewind(File_sys);
-	for(i = 0;i < size;++i){
-		fread(block,sizeof(char),1024,File_sys);
-		if(i != fd)
-			fwrite(block,sizeof(char),1024,duplicate);
-		else{
-			strncpy(header,block,30);
-			fwrite(block,sizeof(char),34,duplicate);
-			fwrite(buf,sizeof(char),write,duplicate);
-			if(space < 0){
-				bzero(block,1024);
-				fwrite(block,sizeof(char),990-write,duplicate);
-			--space;
-			++count;
-			}
-		}
-	}
-	fclose(File_sys);
-	fclose(duplicate);
-	rename("fs_tmp",fs_name);
-
-	int variable ;
-	while(space > -1){
-		File_sys = fopen(fs_name,"rb");
-		duplicate = fopen("fs_tmp","wb");
-		bzero(block, 1024);
-		sprintf(number, "%d", count);
-		variable = 1;
-		for(i = 0;i < size;++i){
-			fread(block, sizeof(char), 1024, File_sys);
-			if(block[0] != '\0')
-				fwrite(block, sizeof(char), 1024, duplicate);
-			else if (variable == 1){
-				bzero(block, 1024);
-				strcpy(block, header);
-				strcat(block, number);
-				fwrite(block, sizeof(char), 34, duplicate);
-				fwrite(buf+990*count, sizeof(char), write, duplicate);
-				++count;
-				--space;
-				variable = -1;
-			}
-		}
-		fclose(File_sys);
-		fclose(duplicate);
-		rename("fs_tmp",fs_name);
-	}
-	free(buf);
-}	
+int myfs_file_read(int fd, char *buf, int count);
+int myfs_file_write(int fd, char *buf, int count);
 
 int main(int argc,char **argv){
 	FILE *File_sys;
@@ -143,14 +20,15 @@ int main(int argc,char **argv){
 	bzero(block,1024);
 	bzero(tmp,1024);
 	bzero(name,30);
-	bzero(fs_name,100);
-	strcpy(fs_name,argv[1]);
+	bzero(FileSys_Name,100);
+	strcpy(FileSys_Name,argv[1]);
 	File_sys = fopen(argv[1],"rb");
 
 	fread(block,sizeof(char),1024,File_sys);
 	sscanf(block,"%d%s",&size,tmp);
-	printf("Name of the File system: %s\n", fs_name);
-	printf("Size of %s : %d KB\n", fs_name, size);
+	printf("Name of the File system: %s\n", FileSys_Name);
+	printf("Size of %s : %d KB\n", FileSys_Name, size);
+	printf("=====================CHOSE YOUR CHOICE====================\n");
 	rewind(File_sys);
 	int i;
 	fclose(File_sys);
@@ -203,13 +81,13 @@ int main(int argc,char **argv){
 		else
 			printf("Some wrong input\n");
 		bzero(name,30);
-		printf("********************\n");
+		printf("=======================================\n");
 	}
 }
 
 int myfs_file_open(const char *filename){
 	FILE *File_sys;
-	File_sys = fopen(fs_name,"rb");
+	File_sys = fopen(FileSys_Name,"rb");
 	char block[1024];
 	bzero(block,1024);
 	fread(block,sizeof(char),1024,File_sys);
@@ -243,7 +121,7 @@ int myfs_file_close(int fd){
 int myfs_file_create(const char *filename){
 	FILE *File_sys;
 	FILE *duplicate;
-	File_sys = fopen(fs_name,"rb");
+	File_sys = fopen(FileSys_Name,"rb");
 	duplicate = fopen("fs_tmp","wb");
 	char block[1024],tmp[1024];
 	bzero(block,1024);
@@ -282,13 +160,13 @@ int myfs_file_create(const char *filename){
 	}
 	fclose(File_sys);
 	fclose(duplicate);
-	rename("fs_tmp",fs_name);
+	rename("fs_tmp",FileSys_Name);
 }
 
 int myfs_file_delete(const char *filename){
 	FILE *File_sys;
 	FILE *duplicate;
-	File_sys = fopen(fs_name,"rb");
+	File_sys = fopen(FileSys_Name,"rb");
 	duplicate = fopen("fs_tmp","wb");
 	char block[1024],tmp[1024],name[30];
 	bzero(block,1024);
@@ -329,5 +207,130 @@ int myfs_file_delete(const char *filename){
 	}
 	fclose(File_sys);
 	fclose(duplicate);
-	rename("fs_tmp",fs_name);
+	rename("fs_tmp",FileSys_Name);
+}
+
+int myfs_file_read(int fd, char *buf, int count){
+	int i, max = 0, read = 0;
+	FILE *File_sys;
+	File_sys = fopen(FileSys_Name,"rb");
+	char block[1024], Name_B[30], number[4];
+	bzero(block,1024);
+	bzero(Name_B,30);
+	bzero(number,4);
+	buf = calloc(count,sizeof(char));
+	max = count / 990;
+	read = count % 990;
+	if(read == 0 && max > 0){
+		read = 990;
+		--count;
+	}
+	count = 0;
+	fseek(File_sys,fd * 1024,SEEK_SET);
+	fread(block,sizeof(char),1024,File_sys);
+	strncpy(Name_B,block,30);
+	if(max != 0)
+		strncpy(buf,block + 34,990);
+	else
+		strncpy(buf,block + 34,read);
+	rewind(File_sys);
+	while(count != max){
+		++count;
+		for(i = 0;i < size;++i){
+			fread(block,sizeof(char),1024,File_sys);
+			strncpy(number,block + 30,4);
+			if(strncmp(Name_B,block,30) == 0 && count == atoi(number)) 
+				if(count == max)
+					strncat(buf,block + 34,read);
+				else
+					strncat(buf,block + 34,990);
+		}
+		rewind(File_sys);
+	}
+	fclose(File_sys);
+	printf("==========Content==========\n");
+	printf("%s\n",buf);
+	printf("==========END==============\n");
+	free(buf);
+}
+
+int myfs_file_write(int fd, char *buf, int count){
+	FILE *File_sys;
+	FILE *duplicate;
+	File_sys = fopen(FileSys_Name, "rb");
+	duplicate = fopen("fs_tmp", "wb");
+	char block[1024], Name_B[30], number[4], tmp;
+	bzero(block, 1024);
+	bzero(Name_B, 34);
+	bzero(number, 4);
+	int i, space = 0, write;
+
+	for(i = 0;i < size;++i){
+		fread(block, sizeof(char), 1024, File_sys);
+		if(block[0] == '\0')
+			space++;
+	}
+	if(count > (space * 990)){
+		printf("File system is full\n");
+		return 0;
+	}
+	buf = calloc(count,sizeof(char));
+	printf("Enter the content:");
+	scanf("%[^\n]",buf);
+	scanf("%c",&tmp);
+	space = count / 990;
+	write = count % 990;
+	if(space > 0){
+		write = 990;
+		--space; 
+	}
+	count = 0;
+	rewind(File_sys);
+	for(i = 0;i < size;++i){
+		fread(block,sizeof(char),1024,File_sys);
+		if(i != fd)
+			fwrite(block,sizeof(char),1024,duplicate);
+		else{
+			strncpy(Name_B,block,30);
+			fwrite(block,sizeof(char),34,duplicate);
+			fwrite(buf,sizeof(char),write,duplicate);
+			if(space < 0){
+				bzero(block,1024);
+				fwrite(block,sizeof(char),990-write,duplicate);
+			}
+			--space;
+			++count;
+		}
+	}
+	fclose(File_sys);
+	fclose(duplicate);
+	rename("fs_tmp",FileSys_Name);
+
+	int variable ;
+	while(space > -1){
+		File_sys = fopen(FileSys_Name,"rb");
+		duplicate = fopen("fs_tmp","wb");
+		bzero(block, 1024);
+		sprintf(number, "%d", count);
+		variable = 1;
+		for(i = 0;i < size;++i){
+			fread(block, sizeof(char), 1024, File_sys);
+			if(block[0] != '\0')
+				fwrite(block, sizeof(char), 1024, duplicate);
+			else if (variable == 1){
+				bzero(block, 1024);
+				strcpy(block, Name_B);
+				strcat(block, number);
+				fwrite(block, sizeof(char), 34, duplicate);
+				fwrite(buf+990*count, sizeof(char), write, duplicate);
+				++count;
+				--space;
+				variable = -1;
+			}
+		}
+		fclose(File_sys);
+		fclose(duplicate);
+		rename("fs_tmp",FileSys_Name);
+	}
+	free(buf);
 }
