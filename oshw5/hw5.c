@@ -5,133 +5,16 @@
 int size;
 char fs_name[100];
 
-int myfs_file_open(const char *filename){
+int myfs_file_open(const char *filename);
+int myfs_file_close(int fd);
+int myfs_file_create(const char *filename);
+int myfs_file_delete(const char *filename);
+
+int myfs_file_read(int fd, char *buf, int count){
+	int i, max = 0, read = 0;
 	FILE *File_sys;
 	File_sys = fopen(fs_name,"rb");
-	char block[1024];
-	bzero(block,1024);
-	fread(block,sizeof(char),1024,File_sys);
-	char *check;
-	check = strstr(block,filename);
-	if(check == NULL){
-		printf("file doesn't exist\n");
-		return 0;
-	}
-	check = strtok(block," ");
-	char name [30];
-	bzero(name,30);
-	int value = 0,ret = 0;
-	while(check != NULL){
-		if(strcmp(check,filename) == 0)
-			ret = 1;
-		else if(ret == 1){
-			value = atoi(check);
-			return value;
-		}
-		check = strtok(NULL," ");
-	}
-}
-
-int myfs_file_close(int fd){
-	return 0;	
-}
-
-int myfs_file_create(const char *filename){
-	FILE *File_sys
-	FILE *duplicate;
-	File_sys = fopen(fs_name,"rb");
-	duplicate = fopen("fs_tmp","wb");
-	char block[1024],tmp[1024];
-	bzero(block,1024);
-	bzero(tmp,1024);
-	fread(block,sizeof(char),1024,File_sys);
-	char *check;
-	check = strstr(block,filename);
-	if(check != NULL){
-		printf("File already exist\n");
-		return 0;
-	}
-	int i,location = 0;
-	for(;block[0] != '\0';++location){
-		fread(block,sizeof(char),1024,File_sys);
-		if(location == size){
-			printf("system is full!\n");
-			return 0;
-		}
-	}
-	rewind(File_sys);
-	fread(block,sizeof(char),1024,File_sys);
-	strcat(block,filename);
-	sprintf(tmp," %d",location);
-	strcat(block,tmp);
-	strcat(block," ");
-	for(i = 0;i < size;++i){
-		if(i == location){
-			fwrite(filename,sizeof(char),30,duplicate);
-			bzero(tmp,1024);
-			fwrite(tmp,sizeof(char),994,duplicate);
-		}
-		else
-			fwrite(block,sizeof(char),1024,duplicate);
-		if(i != size -1)
-			fread(block,sizeof(char),1024,File_sys);
-	}
-	fclose(File_sys);
-	fclose(duplicate);
-	rename("fs_tmp",fs_name);
-}
-
-int myfs_file_delete(const char *filename){
-	FILE *File_sys,*duplicate;
-	File_sys = fopen(fs_name,"rb");
-	duplicate = fopen("fs_tmp","wb");
-	char block[1024],tmp[1024],name[30];
-	bzero(block,1024);
-	bzero(tmp,1024);
-	bzero(name,30);
-	fread(block,sizeof(char),1024,File_sys);
-	char *check;
-	check = strstr(block,filename);
-	if(check == NULL){
-		printf("File doesn't exist\n");
-		return 0;
-	}
-	int i;
-	sprintf(name,"%d ",size);
-	strcpy(tmp,name);
-	for(i = 1;i < size;++i){
-		fread(block,sizeof(char),1024,File_sys);
-		strncpy(name,block,30);
-		if(strcmp(name,filename) != 0 && name[0] != '\0'){
-			strcat(tmp,name);
-			sprintf(name," %d",i);
-			strcat(tmp,name);
-			strcat(tmp," ");
-			bzero(name,30);
-		}
-	}
-	bzero(name,30);
-	fseek(File_sys,1024,SEEK_SET);
-	for(i = 0;i < size;++i){
-		if(strcmp(name,filename) == 0)
-			bzero(tmp,1024);
-		fwrite(tmp,sizeof(char),1024,duplicate);
-		if(i != size - 1){
-			fread(tmp,sizeof(char),1024,File_sys);
-			bzero(name,31);
-			strncpy(name,tmp,30);	
-		}
-	}
-	fclose(File_sys);
-	fclose(duplicate);
-	rename("fs_tmp",fs_name);
-}
-
-int myfs_file_read(int fd,char *buf,int count){
-	int i,max = 0,read = 0;
-	FILE *File_sys;
-	File_sys = fopen(fs_name,"rb");
-	char block[1024],header[30],number[4];
+	char block[1024], header[30], number[4];
 	bzero(block,1024);
 	bzero(header,30);
 	bzero(number,4);
@@ -171,19 +54,20 @@ int myfs_file_read(int fd,char *buf,int count){
 	free(buf);
 }
 
-int myfs_file_write(int fd,char *buf,int count){
-	FILE *File_sys,*duplicate;
-	File_sys = fopen(fs_name,"rb");
-	duplicate = fopen("fs_tmp","wb");
-	char block[1024],header[30],number[4],tmp;
-	bzero(block,1024);
-	bzero(header,34);
-	bzero(number,4);
-	int i,space = 0,write;
+int myfs_file_write(int fd, char *buf, int count){
+	FILE *File_sys;
+	FILE *duplicate;
+	File_sys = fopen(fs_name, "rb");
+	duplicate = fopen("fs_tmp", "wb");
+	char block[1024], header[30], number[4], tmp;
+	bzero(block, 1024);
+	bzero(header, 34);
+	bzero(number, 4);
+	int i, space = 0, write;
 	for(i = 0;i < size;++i){
-		fread(block,sizeof(char),1024,File_sys);
+		fread(block, sizeof(char), 1024, File_sys);
 		if(block[0] == '\0')
-			++space;
+			space++;
 	}
 	if(count > (space * 990)){
 		printf("File system is full\n");
@@ -268,7 +152,7 @@ int main(int argc,char **argv){
 	while(check){
 		if(fd == 0){
 			printf("(O)pen the file\n");
-			printf("(M)ake the file\n");
+			printf("(C)reate the file\n");
 			printf("(D)elete the file\n");
 			printf("(Q)uit\n");
 		}
@@ -278,27 +162,26 @@ int main(int argc,char **argv){
 			printf("(W)rite the file\n");
 			printf("(Q)uit\n");
 		}
+
 		scanf("%c%c",&ch,&n);
+
 		if(ch == 'O' && fd == 0){
 			printf("Enter the file name:");
 			scanf("%s%c",name,&ch);
 			fd = myfs_file_open(name);
-			bzero(name,30);
 		}
 		else if(ch == 'C' && fd != 0){
 			fd = myfs_file_close(fd);
 		}
-		else if(ch == 'M' && fd == 0){
+		else if(ch == 'C' && fd == 0){
 			printf("Enter the file name:");
 			scanf("%s%c",name,&ch);
 			myfs_file_create(name);
-			bzero(name,30);
 		}
 		else if(ch == 'D' && fd == 0){
 			printf("Enter the file name:");
 			scanf("%s%c",name,&ch);
 			myfs_file_delete(name);
-			bzero(name,30);
 		}
 		else if(ch == 'R' && fd != 0){
 			printf("Enter the size you want to read:");
@@ -314,6 +197,132 @@ int main(int argc,char **argv){
 			check = 0;
 		else
 			printf("Some wrong input\n");
+		bzero(name,30);
 		printf("********************\n");
 	}
+}
+
+int myfs_file_open(const char *filename){
+	FILE *File_sys;
+	File_sys = fopen(fs_name,"rb");
+	char block[1024];
+	bzero(block,1024);
+	fread(block,sizeof(char),1024,File_sys);
+	char *check;
+	check = strstr(block,filename);
+	if(check == NULL){
+		printf("File doesn't exist.\n");
+		fclose(File_sys);
+		return 0;
+	}
+	check = strtok(block," ");
+	char name[30];
+	bzero(name,30);
+	int value = 0, ret = 0;
+	while(check != NULL){
+		if(strcmp(check,filename) == 0)
+			ret = 1;
+		else if(ret == 1){
+			value = atoi(check);
+			fclose(File_sys);
+			return value;
+		}
+		check = strtok(NULL," ");
+	}
+}
+
+int myfs_file_close(int fd){
+	return 0;	
+}
+
+int myfs_file_create(const char *filename){
+	FILE *File_sys;
+	FILE *duplicate;
+	File_sys = fopen(fs_name,"rb");
+	duplicate = fopen("fs_tmp","wb");
+	char block[1024],tmp[1024];
+	bzero(block,1024);
+	bzero(tmp,1024);
+	fread(block,sizeof(char),1024,File_sys);
+	char *check;
+	check = strstr(block,filename);
+	if(check != NULL){
+		printf("File already exists!!\n");
+		return 0;
+	}
+	int i, location = 0;
+	for(;block[0] != '\0';++location){
+		fread(block,sizeof(char),1024,File_sys);
+		if(location >= size){
+			printf("File system is full.\n");
+			return 0;
+		}
+	}
+	rewind(File_sys);
+	fread(block,sizeof(char),1024,File_sys);
+	strcat(block,filename);
+	sprintf(tmp," %d",location);
+	strcat(block,tmp);
+	strcat(block," ");
+	for(i = 0;i < size;++i){
+		if(i == location){
+			fwrite(filename,sizeof(char),30,duplicate);
+			bzero(tmp,1024);
+			fwrite(tmp,sizeof(char),994,duplicate);
+		}
+		else
+			fwrite(block,sizeof(char),1024,duplicate);
+		if(i != size -1)
+			fread(block,sizeof(char),1024,File_sys);
+	}
+	fclose(File_sys);
+	fclose(duplicate);
+	rename("fs_tmp",fs_name);
+}
+
+int myfs_file_delete(const char *filename){
+	FILE *File_sys;
+	FILE *duplicate;
+	File_sys = fopen(fs_name,"rb");
+	duplicate = fopen("fs_tmp","wb");
+	char block[1024],tmp[1024],name[30];
+	bzero(block,1024);
+	bzero(tmp,1024);
+	bzero(name,30);
+	fread(block,sizeof(char),1024,File_sys);
+	char *check;
+	check = strstr(block,filename);
+	if(check == NULL){
+		printf("File doesn't exist.\n");
+		return 0;
+	}
+	int i;
+	sprintf(name,"%d ",size);
+	strcpy(tmp,name);
+	for(i = 1;i < size;++i){
+		fread(block,sizeof(char),1024,File_sys);
+		strncpy(name,block,30);
+		if(strcmp(name,filename) != 0 && name[0] != '\0'){
+			strcat(tmp,name);
+			sprintf(name," %d",i);
+			strcat(tmp,name);
+			strcat(tmp," ");
+			bzero(name,30);
+		}
+	}
+	bzero(name,30);
+	fseek(File_sys,1024,SEEK_SET);
+	for(i = 0;i < size;++i){
+		if(strcmp(name,filename) == 0)
+			bzero(tmp,1024);
+		fwrite(tmp,sizeof(char),1024,duplicate);
+		if(i != size - 1){
+			fread(tmp,sizeof(char),1024,File_sys);
+			bzero(name,30);
+			strncpy(name,tmp,30);	
+		}
+	}
+	fclose(File_sys);
+	fclose(duplicate);
+	rename("fs_tmp",fs_name);
 }
